@@ -1,8 +1,9 @@
 package models
 
 import (
-	_ "github.com/go-sql-driver/mysql"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type UrlCode struct {
@@ -12,14 +13,18 @@ type UrlCode struct {
 	Url       string
 	Click     int
 	CreatedAt int
+	ExpireDay int
+	Ip        string
 }
 
-func (UrlCode) AddUrl(url string) int {
+func (UrlCode) AddUrl(url, ip string, expireDay int) int {
 	var uc UrlCode
 	uc.Url = url
 	uc.Code = ""
 	uc.MD5 = MD5(url)
 	uc.CreatedAt = int(time.Now().Unix())
+	uc.Ip = ip
+	uc.ExpireDay = expireDay
 	DB.Create(&uc)
 	return uc.Id
 }

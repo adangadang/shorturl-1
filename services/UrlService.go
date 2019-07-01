@@ -3,12 +3,13 @@ package services
 import (
 	"errors"
 	"fmt"
-	"github.com/astaxie/beego/logs"
-	"github.com/hashicorp/golang-lru"
-	"github.com/jinzhu/gorm"
 	"os"
 	"shorturl/models"
 	"time"
+
+	"github.com/astaxie/beego/logs"
+	"github.com/hashicorp/golang-lru"
+	"github.com/jinzhu/gorm"
 )
 
 type UrlService struct{}
@@ -74,7 +75,7 @@ func saveClicks(clicks map[string]int, shutdown bool) {
 	}
 }
 
-func (UrlService) GenShortUrl(url string) (shortUrl string, err error) {
+func (UrlService) GenShortUrl(url, ip string, expireDay int) (shortUrl string, err error) {
 	var shortCode string
 
 	var urlMd5 = models.MD5(url)
@@ -90,7 +91,7 @@ func (UrlService) GenShortUrl(url string) (shortUrl string, err error) {
 			if result.Id != 0 {
 				id = result.Id
 			} else {
-				id = urlCode.AddUrl(url)
+				id = urlCode.AddUrl(url, ip, expireDay)
 			}
 			if id == 0 {
 				return "", errors.New("get id failed")

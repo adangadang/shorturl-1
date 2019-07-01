@@ -2,14 +2,17 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/asaskevich/govalidator"
-	"github.com/astaxie/beego/logs"
-	"github.com/gin-gonic/gin"
+	"net"
 	"net/http"
 	"net/url"
 	"shorturl/models"
 	"shorturl/services"
+	"strconv"
 	"strings"
+
+	"github.com/asaskevich/govalidator"
+	"github.com/astaxie/beego/logs"
+	"github.com/gin-gonic/gin"
 )
 
 var Index = &IndexController{}
@@ -30,6 +33,7 @@ type result struct {
 //单个生成短网址
 func (i *IndexController) Create(c *gin.Context) {
 	lUrl := c.PostForm("url")
+	expireDay, _ := strconv.Atoi(c.PostForm("expireday"))
 	logs.Info("incoming create url request, url: " + lUrl)
 	if lUrl == "" {
 		logs.Info("url is empty, url: " + lUrl)
@@ -42,8 +46,10 @@ func (i *IndexController) Create(c *gin.Context) {
 		i.failed(c, models.ParamsError, "无效的url")
 		return
 	}
+	//ip
+	ip := ClientIP(c.Request)
 
-	shortUrl, err := services.UrlService{}.GenShortUrl(lUrl)
+	shortUrl, err := services.UrlService{}.GenShortUrl(lUrl, ip, expireDay)
 	if err != nil {
 		logs.Error("gen shortUrl failed, error: " + err.Error())
 		i.failed(c, models.Failed, "请求出错")
@@ -77,6 +83,9 @@ func (i *IndexController) MultiCreate(c *gin.Context) {
 	str, _ := json.Marshal(request.Urls)
 	logs.Info("incoming multicreate url request, url: " + string(str))
 
+	//ip
+	ip := ClientIP(c.Request)
+	expireDay, _ := strconv.Atoi(c.PostForm("expireday"))
 	var cCode = make(chan result)
 	for _, v := range request.Urls {
 		go func(lUrl string) {
@@ -85,7 +94,7 @@ func (i *IndexController) MultiCreate(c *gin.Context) {
 				cCode <- result{lUrl, "url is not valid"}
 				return
 			}
-			shortUrl, err := services.UrlService{}.GenShortUrl(lUrl)
+			shortUrl, err := services.UrlService{}.GenShortUrl(lUrl, ip, expireDay)
 			if err != nil {
 				logs.Error("gen shortUrl failed, error: " + err.Error())
 				cCode <- result{lUrl, err.Error()}
@@ -149,4 +158,25 @@ func (i *IndexController) Path(c *gin.Context) {
 	c.Header("Location", lUrl)
 	c.AbortWithStatus(302)
 	return
+}
+
+// ClientIP 尽最大努力实现获取客户端 IP 的算法。
+// 解析 X-Real-IP 和 X-Forwarded-For 以便于反向代理（nginx 或 haproxy）可以正常工作。
+func ClientIP(r *http.Request) string {
+	xForwardedFor := r.Header.Get("X-Forwarded-For")
+	ip := strings.TrimSpace(strings.Split(xForwardedFor, ",")[0])
+	if ip != "" {
+		return ip
+	}
+
+	ip = strings.TrimSpace(r.Header.Get("X-Real-Ip"))
+	if ip != "" {
+		return ip
+	}
+
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr)); err == nil {
+		return ip
+	}
+
+	return ""
 }

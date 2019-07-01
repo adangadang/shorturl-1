@@ -2,15 +2,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/astaxie/beego/logs"
-	"github.com/gin-gonic/gin"
 	"log"
 	"os"
-	"os/signal"
+
+	"github.com/astaxie/beego/logs"
+	"github.com/gin-gonic/gin"
+
+	//"os/signal"
 	"shorturl/models"
 	"shorturl/routers"
 	"shorturl/services"
-	"syscall"
+
+	//"syscall"
 	"time"
 )
 
@@ -65,7 +68,7 @@ func init() {
 
 func registerSignal() {
 	var c = make(chan os.Signal)
-	signal.Notify(c, syscall.SIGTERM, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGINT)
+	//signal.Notify(c, syscall.SIGTERM, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGINT)
 	for {
 		<-c
 		services.Shutdown()

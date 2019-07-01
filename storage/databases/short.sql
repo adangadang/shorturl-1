@@ -10,6 +10,8 @@ CREATE TABLE `tbl_url_code`
     `code`       varchar(12) COLLATE utf8mb4_unicode_ci   NOT NULL,
     `click`      int(11) unsigned                         NOT NULL default 0,
     `created_at` int(11) unsigned                         NOT NULL,
+    `expire_day` int(11) unsigned                         NOT NULL default 0,
+    `ip`        varchar(16) COLLATE utf8mb4_unicode_ci  NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `unique_md5` (`md5`) USING HASH
 ) ENGINE = InnoDB
