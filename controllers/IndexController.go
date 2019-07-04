@@ -9,6 +9,9 @@ import (
 	"shorturl/services"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/mileusna/useragent"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/astaxie/beego/logs"
@@ -55,7 +58,7 @@ func (i *IndexController) Create(c *gin.Context) {
 		i.failed(c, models.Failed, "请求出错")
 		return
 	} else {
-		logs.Info("[create]: " + lUrl + " => " + shortUrl)
+		createlogs.Info("[create]: " + lUrl + " => " + shortUrl)
 		i.success(c, gin.H{
 			"url": shortUrl,
 		})
@@ -99,7 +102,7 @@ func (i *IndexController) MultiCreate(c *gin.Context) {
 				logs.Error("gen shortUrl failed, error: " + err.Error())
 				cCode <- result{lUrl, err.Error()}
 			} else {
-				logs.Info("[create]: " + lUrl + " => " + shortUrl)
+				createlogs.Info("[create]: " + lUrl + " => " + shortUrl)
 				cCode <- result{lUrl, shortUrl}
 			}
 		}(v)
@@ -154,7 +157,14 @@ func (i *IndexController) Path(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	logs.Info("[query]: " + code + " => " + lUrl)
+
+	ip := ClientIP(c.Request)
+	uaStr := c.Request.UserAgent()
+	userAgent := ua.Parse(uaStr)
+	os := userAgent.OS //ua.OSVersion
+	browser := userAgent.Name
+	tnow := strconv.FormatInt(int64(time.Now().Unix()), 10)
+	jumplogs.Info(tnow + "@#" + code + "@#" + lUrl + "@#" + ip + "@#" + os + "@#" + browser + "@#" + uaStr)
 	c.Header("Location", lUrl)
 	c.AbortWithStatus(302)
 	return
@@ -179,4 +189,12 @@ func ClientIP(r *http.Request) string {
 	}
 
 	return ""
+}
+
+var createlogs = logs.NewLogger(10000)
+var jumplogs = logs.NewLogger(10000)
+
+func init() {
+	createlogs.SetLogger(logs.AdapterFile, `{"filename":"storage/logs/create_`+`.log","Hourly":true}`)
+	jumplogs.SetLogger(logs.AdapterFile, `{"filename":"storage/logs/jump_`+`.log","Hourly":true}`)
 }
